@@ -1,131 +1,129 @@
-class Dot:
-    def __init__(self, x, y):
+from exceptions import *
+
+
+class Dot():
+    def __init__(self, x: int, y: int):
         self.x = x
         self.y = y
-        self.damage = False
-        self.contour = False
-        self.ship = False
-        self.ship_damage = False
-
-    def get_coordinates(self):
-        return self.x, self.y
-
-    def __str__(self):
-        if self.ship_damage:
-            return '#'
-        elif self.ship:
-            return '='
-        elif self.contour:
-            return '-'
-        elif self.damage:
-            return '/'
-        else:
-            return '*'
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
 
-    def is_in_map(self):
-        if self.x in range(0, 6) and self.y in range(0, 6):
-            return True
-        else:
-            print('Not in map!')
-            return False
-
-    def can_be_damage(self):
-        if self.damage == False and self.contour == False:
-            return True
-        else:
-            return False
-
-    def can_be_ship(self):
-        if self.is_in_map() == True and self.ship == False and self.contour == False:
-            return True
-        else:
-            return False
-
-    def set_contur(self):
-        self.damage = False
-        self.contour = True
-
-    def set_damage(self):
-        self.damage = True
-
-    def set_ship(self):
-        self.ship = True
+    def __str__(self):
+        return f'Dot: {self.x, self.y}'
 
 
-class Ship:
-    def __init__(self, len, begin, orientation, hearts):
-        self.len = len
-        self.begin = begin
-        self.orientation = orientation
-        self.hearts = hearts
+class Ship():
+    def __init__(self, x: int, y: int, len: int, direction: str):
+        if direction not in ["Горизонтально", "Вертикально"]:  # Проверка входного параметра direction
+            raise IncorrectShipDirection("Некорректное направление корабля")
+        self._x = x
+        self._y = y
+        self._len = self._lifes = len
+        self._direction = direction
+
+    @property
+    def lifes(self):
+        return self._lifes
+
+    @property
+    def dots(self) -> list:  # Получаем точки корабля
+        dots = []
+        if self._direction == "Горизонтально":  #
+            for i in range(self._len):
+                dots.append(Dot(self._x - i, self._y))
+            dots.reverse()
+        elif self._direction == "Вертикально":  #
+            for i in range(self._len):
+                dots.append(Dot(self._x, self._y - i))
+            dots.reverse()
+        return dots
+
+    @property
+    def contour(self):
+        contour = []
+        for dot in self.dots:
+            for x in range(dot.x - 1, dot.x + 2):
+                for y in range(dot.y - 1, dot.y + 2):
+                    if (Dot(x, y) in self.dots or Dot(x, y) in contour):
+                        continue
+                    else:
+                        contour.append(Dot(x, y))
+        return contour
+
+    def hit(self):  # Метод, отбавляющий 1 жизнь у корабля
+        self._lifes -= 1
 
 
-class Board:
+class Board():
+    _scale = 6
+
     def __init__(self):
-        self.ships = {'four': 1, 'three': 2, 'one': 4}
-        # self.def_board = [['o', 'o', 'o', 'o', 'o', 'o'],
-        #                   ['o', 'o', 'o', 'o', 'o', 'o'],
-        #                   ['o', 'o', 'o', 'o', 'o', 'o'],
-        #                   ['o', 'o', 'o', 'o', 'o', 'o'],
-        #                   ['o', 'o', 'o', 'o', 'o', 'o'],
-        #                   ['o', 'o', 'o', 'o', 'o', 'o']]
-        self.board = [['o', 'o', 'o', 'o', 'o', 'o'],
-                      ['o', 'o', 'o', 'o', 'o', 'o'],
-                      ['o', 'o', 'o', 'o', 'o', 'o'],
-                      ['o', 'o', 'o', 'o', 'o', 'o'],
-                      ['o', 'o', 'o', 'o', 'o', 'o'],
-                      ['o', 'o', 'o', 'o', 'o', 'o']]
-        self.hiden = False
+        self._ships = []  # Список кораблей
+        self._ships_left = 0  # Количество живых кораблей
+        self._board = ["| О |"] * self._scale
+        for i in range(self._scale):
+            self._board[i] = ["| О |"] * self._scale
 
-    def show_map(self):
-        return f'  1 2 3 4 5 6\n' \
-               f'1 {self.board[0][0]} {self.board[0][1]} {self.board[0][2]} {self.board[0][3]} {self.board[0][4]} {self.board[0][5]}\n' \
-               f'2 {self.board[1][0]} {self.board[1][1]} {self.board[1][2]} {self.board[1][3]} {self.board[1][4]} {self.board[1][5]}\n' \
-               f'3 {self.board[2][0]} {self.board[2][1]} {self.board[2][2]} {self.board[2][3]} {self.board[2][4]} {self.board[2][5]}\n' \
-               f'4 {self.board[3][0]} {self.board[3][1]} {self.board[3][2]} {self.board[3][3]} {self.board[3][4]} {self.board[3][5]}\n' \
-               f'5 {self.board[4][0]} {self.board[4][1]} {self.board[4][2]} {self.board[4][3]} {self.board[4][4]} {self.board[4][5]}\n' \
-               f'6 {self.board[5][0]} {self.board[5][1]} {self.board[5][2]} {self.board[5][3]} {self.board[5][4]} {self.board[5][5]}'
+    @classmethod
+    def SCALE(cls):  # Получаем масштаб доски
+        return cls._scale
 
-    def initialisation(self):
-        for i in range(6):
-            for j in range(6):
-                self.board[i][j] = Dot(i, j)
+    def out(self, dot: Dot) -> bool:
+        return dot.x < 0 or dot.y < 0 or dot.x > self._scale - 1 or dot.y > self._scale - 1
 
-    def add_ship(self, ship):
-        try:
-            x, y = ship.begin
-            if self.board[x][y].can_be_ship():
-                if ship.orientation == 'hor':
-                    ship.begin[1] += ship.len - 1
-                    last_x, last_y = ship.begin
-                    if self.board[last_x][last_y].can_be_ship:
-                        for i in range(y, last_y + 1):
-                            self.board[x][i].set_ship()
+    def add_ship(self, ship: Ship):
+        for dot in ship.dots:
+            if self.out(dot):  # Проверка на выход координат за границы
+                raise IncorrectShipPlacement("Корабль выходит за границы")
+            for other_ship in self._ships:  # Проверка на пересечение с другим кораблем
+                if dot in other_ship.dots or dot in other_ship.contour:
+                    raise IncorrectShipPlacement(f"Корабль пересекается с другим кораблем. Точка ({dot.x}, {dot.y})")
+            self._board[dot.x][dot.y] = "| ■ |"
+        self._ships.append(ship)
+        self._ships_left += 1
+
+    @property
+    def get_ships(self):  # Получаем все корабли экземпляры Ship
+        return self._ships
+
+    @property
+    def get_ships_left(self):  # Получаем оставшееся количество кораблей
+        return self._ships_left
+
+    def board_view(self, hid: bool):  # Вывод доски
+        print("  | 1 |  | 2 |  | 3 |  | 4 |  | 5 |  | 6 |\n\n")
+        if hid is False:
+            for col in range(self._scale):
+                print(col + 1, end=" ")
+                for row in range(self._scale):
+                    if self._board[row][col] == "| ■ |":
+                        print("| О |", end="  ")
                     else:
-                        print('You can not install this ship!')
-                elif ship.orientation == 'ver':
-                    ship.begin[0] += ship.len - 1
-                    last_x, last_y = ship.begin
-                    if self.board[last_x][last_y].can_be_ship:
-                        for i in range(x, last_x + 1):
-                            self.board[i][y].set_ship()
-                    else:
-                        print('You can not install this ship!')
-                else:
-                    print("We can't do this orientation!")
+                        print(self._board[row][col], end="  ")
+                print("\n")
+        elif hid is True:
+            for col in range(self._scale):
+                print(col + 1, end=" ")
+                for row in range(self._scale):
+                    print(self._board[row][col], end="  ")
+                print("\n")
 
-            self.show_map()
-        except Exception as exc:
-            print(exc)
-
-
-a = Board()
-a.initialisation()
-b = Ship(2, [1, 2], 'hor', 3)
-c = Ship(4, [2, 5], 'ver', 3)
-a.add_ship(b)
-a.add_ship(c)
-print(a.show_map())
+    def shot(self, dot: Dot) -> bool:
+        if self.out(dot) or self._board[dot.x][dot.y] == "T" or self._board[dot.x][
+            dot.y] == "X":  # Проверка на попадание в пределах границы и отсуствие повторения
+            raise IncorrectShotPoint()
+        else:
+            self._board[dot.x][dot.y] = "| T |"
+            for ship in self._ships:
+                if dot in ship.dots:
+                    ship.hit()
+                    if ship.lifes == 0:
+                        self._ships_left -= 1  # Уменьшаем количество живых кораблей на 1, если корабль убит
+                        for contour in ship.contour:
+                            if (contour.x >= 0 and contour.y >= 0 and contour.x < self._scale and
+                                    contour.y < self._scale):
+                                self._board[contour.x][contour.y] = "| T |"
+                    self._board[dot.x][dot.y] = "| X |"  # отметка попадания в корабль
+                    return True  # Возвращаем true если попали в корабль и false если не попали
+        return False
